@@ -469,6 +469,31 @@ RSpec.describe Beyag::Client do
     end
   end
 
+  describe '#renotify' do
+    let(:params) do
+      {
+        uid: 'uid123',
+      }
+    end
+
+    let(:response_body) { { 'response' => { 'message' => 'Notification has been sent' } } }
+
+    before do
+      stub_request(:post, /api.begateway.com\/beyag\/transactions\/uid123\/renotify/).to_return(response_obj)
+    end
+
+    context 'success request' do
+      let(:response_obj) { { body: response_body.to_json, status: 200 } }
+
+      it 'gets success response from BeYag' do
+        response = client.renotify(params)
+
+        expect(response.successful?).to eq(true)
+        expect(response.data.dig('response', 'message')).to eq('Notification has been sent')
+      end
+    end
+  end
+
   describe '#query_transaction' do
     let(:order_id) { 'uid123' }
 

@@ -27,6 +27,11 @@ module Beyag
       post(path, request: params)
     end
 
+    def renotify(params)
+      path = "/transactions/#{params[:uid]}/renotify"
+      post(path, request: params)
+    end
+
     def erip_payment(params)
       post('/payments', request: params)
     end
