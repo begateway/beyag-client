@@ -6,6 +6,8 @@ module Beyag
     attr_reader :shop_id, :secret_key, :gateway_url, :opts, :logger
     cattr_accessor :proxy
 
+    TRANSACTION_OPERATIONS = %w(renotify recover confirm proof).freeze
+
     def initialize(params)
       @shop_id = params.fetch(:shop_id)
       @secret_key = params.fetch(:secret_key)
@@ -22,14 +24,11 @@ module Beyag
       get("/transactions/#{uid}")
     end
 
-    def recover(params)
-      path = "/transactions/#{params[:uid]}/recover"
-      post(path, request: params)
-    end
-
-    def renotify(params)
-      path = "/transactions/#{params[:uid]}/renotify"
-      post(path, request: params)
+    TRANSACTION_OPERATIONS.each do |op_type|
+      define_method op_type.to_sym do |params|
+        path = "/transactions/#{params[:uid]}/#{op_type}"
+        post(path, request: params)
+      end
     end
 
     def erip_payment(params)
