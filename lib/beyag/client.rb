@@ -67,6 +67,7 @@ module Beyag
         c.options[:timeout] ||= DEFAULT_TIMEOUT
         c.options[:proxy] = proxy if proxy
         c.request :json
+        c.response :logger, logger, bodies: true
 
         c.headers = {'Content-Type' => 'application/json'}.update(opts[:headers].to_h)
 
