@@ -160,6 +160,65 @@ RSpec.describe Beyag::Client do
     end
   end
 
+  describe '#erip_refund' do
+    let(:params) do
+      {
+        "amount" => 100,
+        "currency" => "BYR",
+        "description" => "Оплата заказа #3",
+        "email" => "ivanpetrov@tut.by",
+        "ip" => "127.0.0.8",
+        "order_id" => 123456789012,
+        "notification_url" =>  "http://merchant.example.com",
+        "customer" => {
+          "first_name" => "Иван",
+          "last_name" => "Петров",
+          "country" => "BY",
+          "city" => "Пинск",
+          "zip" => "220000",
+          "address" => "ул Червякова",
+          "phone" => "+375172000000"
+        },
+        "payment_method" => {
+          "type" => "erip",
+          "account_number" => "321",
+          "service_no" => "99999999",
+          "instruction" => ["Платежи -> Минск -> Интернет магазины -> Доставка счастья"],
+          "service_info" => ["Уважаемый Клиент", "Подтвердите оплату заказа №123"],
+          "receipt" =>  ["Спасибо за оплату заказа №123, наши операторы свежутся с вами"]
+        }
+      }
+    end
+
+    before do
+      stub_request(:post, /api.begateway.com\/beyag\/refund/).to_return(response_obj)
+    end
+
+    context 'success request' do
+      let(:response_obj) { { body: success_response.to_json, status: 200 } }
+
+      it 'gets pending response from BeYag' do
+        response = client.erip_refund(params)
+
+        expect(response.successful?).to eq(true)
+        expect(response.transaction["amount"]).to eq(100)
+        expect(response.payment_method["service_no"]).to eq(99999999)
+        expect(response.payment_method["account_number"]).to eq("321")
+      end
+    end
+
+    context 'failed request' do
+      let(:response_obj) { { body: failed_response.to_json, status: 401 } }
+
+      it 'gets failed response from BeYag' do
+        response = client.erip_refund(params)
+
+        expect(response.successful?).to eq(false)
+      end
+    end
+  end
+
+
   describe '#query' do
     let(:order_id) { "bbb07d8b-eb16-40a3-97a7-7e52ae11c0e4" }
 
