@@ -35,6 +35,10 @@ module Beyag
       post('/payments', request: params)
     end
 
+    def erip_refund(params)
+      post('/refunds', request: params)
+    end
+
     def bank_list(gateway_id)
       get("/gateways/#{gateway_id}/bank_list")
     end

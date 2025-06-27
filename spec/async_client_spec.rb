@@ -23,6 +23,7 @@ RSpec.describe Beyag::AsyncClient do
       it { should respond_to :bank_list }
       it { should respond_to :query }
       it { should respond_to :erip_payment }
+      it { should respond_to :erip_refund }
     end
 
     context '#payment' do
