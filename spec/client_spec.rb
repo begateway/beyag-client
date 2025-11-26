@@ -495,7 +495,7 @@ RSpec.describe Beyag::Client do
       end
     end
   end
-  
+
   describe '#recover' do
     let(:params) do
       {
@@ -549,6 +549,67 @@ RSpec.describe Beyag::Client do
 
         expect(response.successful?).to eq(true)
         expect(response.data.dig('response', 'message')).to eq('Notification has been sent')
+      end
+    end
+  end
+
+  describe '#query_refund' do
+    let(:uid) { 'uid123' }
+
+    let(:transaction_response) do
+      {
+        'transaction' => {
+          'id' => 'uid123',
+          'uid' => 'uid123',
+          'parent_uid' => 'parentuid123',
+          'type' => 'refund',
+          'status' => 'successful',
+          'amount' => 100,
+          'currency' => 'BYN',
+          'message' => nil,
+          'reason' => 'Received from service',
+          'created_at' => '0000-00-00T00:00:00Z',
+          'paid_at' => '0000-00-00T00:00:00Z',
+          'refund' => {
+            'status' => 'successful',
+            'message' => nil,
+            'ref_id' => 'ref_id'
+          },
+          'test' => false,
+          'language' => 'en',
+          'version' => 0,
+        }
+      }
+    end
+
+    let(:error_response) do
+      {
+        'message'=>'Not found.'
+      }
+    end
+
+    before do
+      stub_request(:get, /api.begateway.com\/beyag\/refunds\//).to_return(response_obj)
+    end
+
+    context 'success request' do
+      let(:response_obj) { { body: transaction_response.to_json, status: 200 } }
+
+      it 'get response from BeYag' do
+        response = client.query_refund(uid)
+
+        expect(response.successful?).to eq(true)
+        expect(response.transaction).to match(transaction_response['transaction'])
+      end
+    end
+
+    context 'failed request' do
+      let(:response_obj) { { body: error_response.to_json, status: 404 } }
+
+      it 'gets failed response from BeYag' do
+        response = client.query_refund('')
+
+        expect(response.successful?).to eq(false)
       end
     end
   end

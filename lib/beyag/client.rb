@@ -24,6 +24,10 @@ module Beyag
       get("/transactions/#{uid}")
     end
 
+    def query_refund(uid)
+      get("/refunds/#{uid}")
+    end
+
     TRANSACTION_OPERATIONS.each do |op_type|
       define_method op_type.to_sym do |params|
         path = "/transactions/#{params[:uid]}/#{op_type}"
