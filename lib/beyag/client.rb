@@ -39,6 +39,10 @@ module Beyag
       post('/payments', request: params)
     end
 
+    def synchronize_210_file_transactions(params)
+      post('/wls/synchronize_210_file_transactions', request: params)
+    end
+
     def erip_refund(params)
       post('/refunds', request: params)
     end
