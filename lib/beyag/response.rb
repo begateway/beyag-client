@@ -17,12 +17,12 @@ module Beyag
         { 'error' => message }
       end
 
-      def friendly_message
-        "Transaction is being processed. Please wait."
+      def bank_code
+        'P.9999'
       end
 
       def data
-        { 'status' => 'error', 'message' => message, 'friendly_message' => friendly_message, 'errors' => errors }
+        { 'status' => 'error', 'message' => message, 'bank_code' => bank_code, 'errors' => errors }
       end
 
       %i[id service_no transaction payment_method status].each do |name|
