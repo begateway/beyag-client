@@ -790,4 +790,77 @@ RSpec.describe Beyag::Client do
       end
     end
   end
+
+  describe '#transactions_by_tracking_id' do
+    let(:tracking_id) { 'Order_12345' }
+    let(:endpoint) { "https://api.begateway.com/beyag/transactions/tracking_id/#{tracking_id}" }
+
+    before { stub_request(:get, endpoint).to_return(response_obj) }
+
+    # Эндпоинт возвращает список транзакций по tracking_id (до 100, свежие сверху).
+    let(:transactions_response) do
+      {
+        'transactions' => [
+          {
+            'uid' => 'af546e09-982e-4df9-8167-107d229aaf4b',
+            'type' => 'payout',
+            'status' => 'successful',
+            'amount' => 1000,
+            'currency' => 'USD',
+            'tracking_id' => tracking_id,
+            'payout' => { 'status' => 'successful', 'ref_id' => 'ref_id' }
+          },
+          {
+            'uid' => 'b1111111-0000-0000-0000-000000000000',
+            'type' => 'payout',
+            'status' => 'failed',
+            'amount' => 1000,
+            'currency' => 'USD',
+            'tracking_id' => tracking_id
+          }
+        ]
+      }
+    end
+
+    context 'success request' do
+      let(:response_obj) { { body: transactions_response.to_json, status: 200 } }
+
+      it 'returns all transactions for the tracking_id' do
+        response = client.transactions_by_tracking_id(tracking_id)
+
+        expect(response.successful?).to eq(true)
+        expect(response.status).to eq(200)
+        expect(response.data['transactions'].size).to eq(2)
+        expect(response.data['transactions'].first['uid']).to eq('af546e09-982e-4df9-8167-107d229aaf4b')
+        expect(response.data['transactions'].first['tracking_id']).to eq(tracking_id)
+      end
+
+      it 'requests the tracking_id path' do
+        client.transactions_by_tracking_id(tracking_id)
+
+        expect(a_request(:get, endpoint)).to have_been_made
+      end
+    end
+
+    context 'no transactions found' do
+      let(:response_obj) { { body: { 'transactions' => [] }.to_json, status: 200 } }
+
+      it 'returns an empty transactions array' do
+        response = client.transactions_by_tracking_id(tracking_id)
+
+        expect(response.successful?).to eq(true)
+        expect(response.data['transactions']).to eq([])
+      end
+    end
+
+    context 'failed request' do
+      let(:response_obj) { { body: { 'message' => 'Unauthorized' }.to_json, status: 401 } }
+
+      it 'gets failed response from BeYag' do
+        response = client.transactions_by_tracking_id(tracking_id)
+
+        expect(response.successful?).to eq(false)
+      end
+    end
+  end
 end
