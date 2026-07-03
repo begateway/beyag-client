@@ -57,6 +57,12 @@ module Beyag
       end
     end
 
+    %i[payment payout].each do |method|
+      define_method("#{method}_precheck") do |params|
+        post("/transactions/#{method}/precheck", request: params)
+      end
+    end
+
     private
 
     attr_reader :response
