@@ -437,6 +437,123 @@ RSpec.describe Beyag::Client do
     end
   end
 
+  context 'precheck' do
+    let(:precheck_params) do
+      {
+        request: {
+          amount: 100,
+          currency: 'USD',
+          description: 'Test description',
+          tracking_id: 'Test tracking_id',
+          customer: { first_name: 'John', last_name: 'Doe' },
+          method: { type: 'bank_transfer' },
+          test: false
+        }
+      }
+    end
+
+    let(:allowed_response) do
+      {
+        code: 'S.0000',
+        message: 'Transaction is allowed and can be processed',
+        friendly_message: 'Transaction is allowed and can be processed',
+        status: 'successful',
+        commission: { minimum: 0.7, percent: 1.5, bank_fee: 7.35, currency: 'USD' },
+        smart_routing_verification: { status: 'successful' },
+        precheck: { gateway_id: 1234, status: 'successful', provider_raw: {} }
+      }
+    end
+
+    let(:not_allowed_response) do
+      {
+        code: 'F.0223',
+        message: 'Transaction is not allowed and can not be processed',
+        friendly_message: 'Transaction is not allowed and can not be processed',
+        status: 'failed',
+        smart_routing_verification: { status: 'failed' }
+      }
+    end
+
+    let(:invalid_response) do
+      {
+        code: 'E.0625',
+        message: 'Invalid transaction parameters',
+        friendly_message: 'Invalid transaction parameters',
+        errors: [{ type: ['is missing'] }]
+      }
+    end
+
+    { payment_precheck: 'payment', payout_precheck: 'payout' }.each do |method, type|
+      describe "##{method}" do
+        let(:endpoint) { "https://api.begateway.com/beyag/transactions/#{type}/precheck" }
+
+        before { stub_request(:post, endpoint).to_return(response_obj) }
+
+        context 'transaction is allowed (200)' do
+          let(:response_obj) { { body: allowed_response.to_json, status: 200 } }
+
+          it 'returns an allowed precheck result with commission' do
+            response = client.public_send(method, precheck_params)
+
+            expect(response).to be_successful
+            expect(response).not_to be_error
+            expect(response.status).to eq 200
+            expect(response.data['code']).to eq 'S.0000'
+            expect(response.data['status']).to eq 'successful'
+            expect(response.data.dig('commission', 'percent')).to eq 1.5
+            expect(response.data.dig('precheck', 'gateway_id')).to eq 1234
+          end
+
+          it "posts the request to /transactions/#{type}/precheck" do
+            client.public_send(method, precheck_params)
+
+            expect(
+              a_request(:post, endpoint).with { |req| JSON.parse(req.body).key?('request') }
+            ).to have_been_made
+          end
+        end
+
+        context 'transaction is not allowed (202)' do
+          let(:response_obj) { { body: not_allowed_response.to_json, status: 202 } }
+
+          it 'returns a failed status with the F.0223 code' do
+            response = client.public_send(method, precheck_params)
+
+            expect(response.status).to eq 202
+            expect(response.data['code']).to eq 'F.0223'
+            expect(response.data['status']).to eq 'failed'
+          end
+        end
+
+        context 'invalid request (422)' do
+          let(:response_obj) { { body: invalid_response.to_json, status: 422 } }
+
+          it 'returns an error response' do
+            response = client.public_send(method, precheck_params)
+
+            expect(response).not_to be_successful
+            expect(response).to be_error
+            expect(response.status).to eq 422
+            expect(response.data['code']).to eq 'E.0625'
+            expect(response.errors).to eq([{ 'type' => ['is missing'] }])
+          end
+        end
+      end
+    end
+
+    it 'does not clobber the regular #payment endpoint' do
+      stub_request(:post, 'https://api.begateway.com/beyag/transactions/payment')
+        .to_return(body: {}.to_json, status: 200)
+      stub_request(:post, 'https://api.begateway.com/beyag/transactions/payment/precheck')
+        .to_return(body: {}.to_json, status: 200)
+
+      client.payment(precheck_params)
+
+      expect(a_request(:post, 'https://api.begateway.com/beyag/transactions/payment')).to have_been_made
+      expect(a_request(:post, 'https://api.begateway.com/beyag/transactions/payment/precheck')).not_to have_been_made
+    end
+  end
+
   describe "initialization" do
     let(:shop_id) { '1' }
     let(:secret_key) { '123new' }
