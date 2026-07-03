@@ -51,6 +51,10 @@ module Beyag
       get("/gateways/#{gateway_id}/bank_list")
     end
 
+    def transactions_by_tracking_id(tracking_id)
+      get("/transactions/tracking_id/#{tracking_id}")
+    end
+
     %i[payment refund payout credit].each do |method|
       define_method(method) do |params|
         post("/transactions/#{method}", request: params)
